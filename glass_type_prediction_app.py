@@ -4,11 +4,8 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
-from sklearn.metrics import precision_score, recall_score 
-from sklearn.metrics import confusion_matrix, classification_report
 
-st.set_option('deprecation.showPyplotGlobalUse', False)
+
 @st.cache()
 def load_data():
     file_path = 'https://student-datasets-bucket.s3.ap-south-1.amazonaws.com/whitehat-ds-datasets/glass-types.csv'
@@ -27,18 +24,19 @@ def load_data():
 
     return df
 
-df = load_data() 
+glass_df = load_data() 
 # Creating the features data-frame holding all the columns except the last column
-x = df.iloc[:, :-1]
+x = glass_df.iloc[:, :-1]
 
 
 # Creating the target series that holds last column 
-y = df['GlassType']
+y = glass_df['GlassType']
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state = 42)
 
 
 # Create a function 'prediction()' which accepts SepalLength, SepalWidth, PetalLength, PetalWidth as input and returns species name.
+@st.cache()
 def prediction(model,ri, na, mg, al, si, k, ca, ba, fe):
     type = model.predict([[ri, na, mg, al, si, k, ca, ba, fe]])
     type = type[0]
@@ -62,75 +60,78 @@ st.sidebar.title("Glass Type prediction Web app")
 
 if st.sidebar.checkbox("Show raw data"):
     st.subheader("Glass Type Data set")
-    st.dataframe(df)
+    st.dataframe(glass_df)
     
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-st.sidebar.subheader("Exploratory Data Analysis")
-chart_type = st.sidebar.multiselect("Visualisation Type",('Correlation Heatmap', 'Line Chart', 'Area Chart', 'Count Plot','Pie Chart', 'Box Plot'))
-if 'Correlation Heatmap' in chart_type:
+st.sidebar.subheader("Visualisation Selector")
+plot_list = st.sidebar.multiselect("Select the Charts/Plots:",('Correlation Heatmap', 'Line Chart', 'Area Chart', 'Count Plot','Pie Chart', 'Box Plot'))
+
+st.set_option('deprecation.showPyplotGlobalUse', False)
+
+if 'Correlation Heatmap' in plot_list:
 	st.subheader("Correlation Heatmap")
 	sns.heatmap(df.corr(),annot=True)
 	st.pyplot()
 
-if 'Line Chart' in chart_type:
+if 'Line Chart' in plot_list:
 	st.subheader("Line Chart")
-	st.line_chart(df)
+	st.line_chart(glass_df)
 			
-if 'Area Chart' in chart_type:
+if 'Area Chart' in plot_list:
 	st.subheader("Area Chart")
-	st.area_chart(df)
+	st.area_chart(glass_df)
 
-if 'Count Plot' in chart_type:
+if 'Count Plot' in plot_list:
 	st.subheader("Count plot")
-	sns.countplot('GlassType',data=df)
+	sns.countplot('GlassType',data=glass_df)
 	st.pyplot()
 
-if 'Pie Chart' in chart_type:
+if 'Pie Chart' in plot_list:
 	st.subheader("Pie Chart")
-	pie_data = df['GlassType'].value_counts()
-	explode = np.linspace(0, 0.5, 7) # Shift the slices away from the centre of the pie 
+	pie_data = glass_df['GlassType'].value_counts()
 	plt.pie(pie_data, labels=pie_data.index, autopct='%1.2f%%', startangle=30)
 	st.pyplot()
 
-if 'Box Plot' in chart_type:
+if 'Box Plot' in plot_list:
 	st.subheader("Box Plot")
 	variable = st.sidebar.selectbox("Select the variable for boxplot",('RI', 'Na', 'Mg', 'Al', 'Si', 'K', 'Ca', 'Ba', 'Fe', 'GlassType'))
-	sns.boxplot(df[variable])
+	sns.boxplot(glass_df[variable])
 	st.pyplot()
 
 
 st.sidebar.subheader("Select your values:")
-Ri = st.sidebar.slider("Input Ri",0.0,100.0)
-Na = st.sidebar.slider("Input Na",0.0,100.0)
-Mg = st.sidebar.slider("Input Mg",0.0,100.0)
-Al = st.sidebar.slider("Input Al",0.0,100.0)
-Si = st.sidebar.slider("Input Si",0.0,100.0)
-K = st.sidebar.slider("Input K",0.0,100.0)
-Ca = st.sidebar.slider("Input Ca",0.0,100.0)
-Ba = st.sidebar.slider("Input Ba",0.0,100.0)
-Fe = st.sidebar.slider("Input Fe",0.0,100.0)
+ri = st.sidebar.slider("Input Ri",float(glass_df['RI'].min()), float(glass_df['RI'].max()))
+na = st.sidebar.slider("Input Na",float(glass_df['Na'].min()), float(glass_df['Na'].max()))
+mg = st.sidebar.slider("Input Mg",float(glass_df['Mg'].min()), float(glass_df['Mg'].max()))
+al = st.sidebar.slider("Input Al",float(glass_df['Al'].min()), float(glass_df['Al'].max()))
+si = st.sidebar.slider("Input Si",float(glass_df['Si'].min()), float(glass_df['Si'].max()))
+k = st.sidebar.slider("Input K",float(glass_df['K'].min()), float(glass_df['K'].max()))
+ca = st.sidebar.slider("Input Ca",float(glass_df['Ca'].min()), float(glass_df['Ca'].max()))
+ba = st.sidebar.slider("Input Ba",float(glass_df['Ba'].min()), float(glass_df['Ba'].max()))
+fe = st.sidebar.slider("Input Fe",float(glass_df['Fe'].min()), float(glass_df['Fe'].max()))
 
 st.sidebar.subheader("Choose Classifier")
 classifier = st.sidebar.selectbox("Classifier",('Support Vector Machine', 'Random Forest Classifier'))
 
+from sklearn.metrics import plot_confusion_matrix
 
 if classifier=='Support Vector Machine':
     st.sidebar.subheader("Model Hyperparameters")
-    C = st. sidebar.number_input("C (Reglarisation paramter)",0.01, 10.0, step=0.01)
-    kernel = st.sidebar.radio("Kernel",("rbf","linear"))
-    gamma = st.sidebar.radio("Gamma (Kernel coefficicent)", ("scale","auto"))
+    c_input = st. sidebar.number_input("C (Error Rate)")
+    kernel_input = st.sidebar.radio("Kernel",("linear", "rbf", "poly"))
+    gamma_input = st. sidebar.number_input("Gamma")
 
     if st.sidebar.button('Classify'):
         st.subheader("Support Vector Machine")
-        svc_model=SVC(C=C, kernel=kernel, gamma=gamma)
+        svc_model=SVC(C=c_input, kernel=kernel_input, gamma=gamma_input)
         svc_model.fit(x_train,y_train)
         y_pred = svc_model.predict(x_test)
         accuracy = svc_model.score(x_test, y_test)
-        glass_type = prediction(svc_model, Ri, Na, Mg, Al, Si, K, Ca, Ba, Fe)
+        glass_type = prediction(svc_model, ri, na, mg, al, si, k, ca, ba, fe)
         st.write("The Type of glass predicted is:", glass_type)
         st.write("Accuracy", accuracy.round(2))
         plot_confusion_matrix(svc_model, x_test, y_test)
@@ -139,21 +140,20 @@ if classifier=='Support Vector Machine':
             
 
 
-if classifier=='Random Forest Classifier':
+if classifier =='Random Forest Classifier':
     st.sidebar.subheader("Model Hyperparameters")
-    n_estimators = st.sidebar.number_input("Number of trees in the forest",100, 5000,step=10)
-    max_depth = st.sidebar.number_input("Maximum depth of the tree", 1, 20, step=1)
+    n_estimators_input = st.sidebar.number_input("Number of trees in the forest",100, 5000,step=10)
+    max_depth_input = st.sidebar.number_input("Maximum depth of the tree", 1, 20, step=1)
         
 
 
     if st.sidebar.button('Classify'):
         st.subheader("Random Forest Classifier")
-        rfc_model= RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, n_jobs=-1)
-        rfc_model.fit(x_train,y_train)
-        y_pred = rfc_model.predict(x_test)
-        accuracy = rfc_model.score(x_test, y_test)
-        glass_type = prediction(rfc_model, Ri, Na, Mg, Al, Si, K, Ca, Ba, Fe)
+        rf_clf= RandomForestClassifier(n_estimators=n_estimators_input, max_depth=max_depth_input, n_jobs=-1)
+        rf_clf.fit(x_train,y_train)
+        accuracy = rf_clf.score(x_test, y_test)
+        glass_type = prediction(rf_clf, ri, na, mg, al, si, k, ca, ba, fe)
         st.write("The Type of glass predicted is:", glass_type)
         st.write("Accuracy", accuracy.round(2))
-        plot_confusion_matrix(rfc_model, x_test, y_test)
+        plot_confusion_matrix(rf_clf, x_test, y_test)
         st.pyplot()
