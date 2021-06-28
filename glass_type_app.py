@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 @st.cache()
 def load_data():
-    file_path = 'https://student-datasets-bucket.s3.ap-south-1.amazonaws.com/whitehat-ds-datasets/glass-types.csv'
+    file_path = "glass-types.csv"
     df = pd.read_csv(file_path, header = None)
     
     # Drop the 0th column as it contains only the serial numbers.
